@@ -74,10 +74,10 @@ def create_user(request):
         if password == password2:
             if MyUser.objects.filter(email=email).exists():
                 messages.info(request, f"Email {email} Already Taken")
-                return redirect('signup')
+                return redirect('register')
             elif MyUser.objects.filter(username=username).exists():
                 messages.info(request, f"Username {username} Already Taken")
-                return redirect('signup')
+                return redirect('register')
             else:
                 user = MyUser.objects.create_user(username=username, email=email, password=password)
                 user.save()
