@@ -1,0 +1,107 @@
+i'm using django and below are my codes;
+class Courses(models.Model):
+    CourseName = models.CharField(max_length=500)
+
+    def __str__(self):
+        return self.CourseName
+
+class Years(models.Model):
+    Name = models.CharField(max_length=500)
+
+    def __str__(self):
+        return self.Name
+
+and these codes below is myUser model;
+class MyUser(AbstractBaseUser):
+    email=models.EmailField(verbose_name="email", max_length=100, unique=True)
+    first_name=models.CharField(verbose_name="first name", max_length=100, unique=False)
+    username=models.CharField(verbose_name="user name", max_length=100, unique=True)
+    middle_name=models.CharField(verbose_name="middle name", max_length=100, unique=False)
+    last_name=models.CharField(verbose_name="last name", max_length=100, unique=False)
+    phone=models.CharField(verbose_name="phone",default="+255", max_length=13)
+
+    Course = models.ForeignKey(Courses, on_delete=models.CASCADE, blank=True,null=True)
+    Year = models.ForeignKey(Years, on_delete=models.CASCADE, blank=True,null=True)
+    
+    date_joined=models.DateTimeField(verbose_name="date joined", auto_now_add=True)
+    last_login=models.DateTimeField(verbose_name="last login", auto_now=True)
+    is_admin=models.BooleanField(default=False)
+    is_active=models.BooleanField(default=True)
+    is_staff=models.BooleanField(default=True)
+    is_superuser=models.BooleanField(default=False)
+    hide_email = models.BooleanField(default=True)
+
+
+
+and my other models are;
+class ElectionCategories(models.Model):
+    Category = models.CharField(max_length=500)
+
+    def __str__(self):
+        return self.Category
+
+class Poll(models.Model):
+    Category = models.ForeignKey(ElectionCategories, on_delete=models.CASCADE)
+    Course = models.ForeignKey(Courses, on_delete=models.CASCADE, blank=True,null=True)
+    Year = models.ForeignKey(Years, on_delete=models.CASCADE, blank=True,null=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    text = models.TextField()
+    pub_date = models.DateTimeField(default=timezone.now)
+    active = models.BooleanField(default=True)
+
+  The problem is in my views.py file i need to filter polls based on the login user, firstly i want to get the CourseName and Year of the login user which are fields in MyUser model.
+  After getting CourseName and Year of the login user, then i want to filter all Cr polls from Poll model  where the Course is equal to the Coursename of the login user and Year is equal to the Year of the login user.
+
+  my views.py codes are;
+  @login_required()
+def polls_list(request,id):
+    
+    categoryId = ElectionCategories.objects.get(id=id)
+    
+    login_user_course = request.user.Course
+    login_user_year = request.user.Year
+
+    
+    print(login_user_course.CourseName)
+
+    all_cr_polls = Poll.objects.filter(
+                Category__id__icontains = categoryId.id,
+                Course__CourseName__icontains = login_user_course.CourseName,
+                Year__id__icontains = login_user_year.Name
+
+                )
+
+
+    all_polls = Poll.objects.filter(
+                Category__id__icontains = categoryId.id
+                )
+
+    search_term = ''
+    if 'name' in request.GET:
+        all_polls = all_polls.order_by('text')
+
+    if 'date' in request.GET:
+        all_polls = all_polls.order_by('pub_date')
+
+    if 'vote' in request.GET:
+        all_polls = all_polls.annotate(Count('vote')).order_by('vote__count')
+
+    if 'search' in request.GET:
+        search_term = request.GET['search']
+        all_polls = all_polls.filter(text__icontains=search_term)
+
+    paginator = Paginator(all_polls, 100)  # Show 6 contacts per page
+    page = request.GET.get('page')
+    polls = paginator.get_page(page)
+
+    get_dict_copy = request.GET.copy()
+    params = get_dict_copy.pop('page', True) and get_dict_copy.urlencode()
+    print(params)
+    context = {
+        'polls': polls,
+        'params': params,
+        'search_term': search_term,
+    }
+    return render(request, 'polls/polls_list.html', context)
+
+so pass through my codes especially views.py file and modify them to solve my issue.
